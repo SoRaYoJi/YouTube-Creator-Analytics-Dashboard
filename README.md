@@ -31,22 +31,22 @@ This project takes raw YouTube Creator data (CSV format) and transforms it into 
 ### 1. Initial Upload Screen (หน้าต่างอัปโหลดเริ่มต้น)
 Start by uploading your local CSV file. The application is offline-ready and processes data securely on your device.
 *(เริ่มต้นด้วยการอัปโหลดไฟล์ CSV ในเครื่องของคุณ แอปพลิเคชันนี้ทำงานแบบออฟไลน์และประมวลผลข้อมูลในเครื่องอย่างปลอดภัย)*
-![Upload Screen](images\Screenshot%202026-03-05%20151157.png)
+![Upload Screen](images/Screenshot 2026-03-05 151157.png)
 
 ### 2. File Selection (การเลือกไฟล์)
 Select your dataset (e.g., the 79MB `global_youtube_creator_data_large.csv`).
 *(เลือกชุดข้อมูลของคุณ เช่น ไฟล์ `global_youtube_creator_data_large.csv` ขนาด 79MB)*
-![File Selection](images\Screenshot%202026-03-05%20151253.png)
+![File Selection](images/Screenshot 202026-03-05 20151253.png)
 
 ### 3. Data Filtering & Summary (การกรองข้อมูลและสรุปผล)
 Use the dropdown menus to filter the analytics by Category, Region, Language, or Ads status to narrow down your insights.
 *(ใช้เมนูดรอปดาวน์เพื่อกรองข้อมูลตามหมวดหมู่, ภูมิภาค, ภาษา หรือสถานะโฆษณา เพื่อเจาะลึกข้อมูลที่คุณสนใจ)*
-![Dashboard Filters](images\Screenshot%202026-03-05%20151310.png)
+![Dashboard Filters](images/Screenshot 202026-03-05 20151310.png)
 
 ### 4. Interactive Visualizations (ส่วนแสดงผลกราฟ)
 Explore the generated charts to find actionable insights about content performance, regional popularity, and audience sentiment.
 *(สำรวจกราฟที่สร้างขึ้นเพื่อหา Insight เกี่ยวกับประสิทธิภาพของคอนเทนต์, ความนิยมในแต่ละภูมิภาค และความรู้สึกของผู้ชม)*
-![Full Dashboard](images\Screenshot%202026-03-05%20151318.png)
+![Full Dashboard](images/Screenshot 202026-03-05 20151318.png)
 
 ---
 
