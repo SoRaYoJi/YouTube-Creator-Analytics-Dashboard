@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Creator Analytics Dashboard</title>
+    <!-- Tailwind CSS สำหรับตกแต่งหน้าเว็บ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js สำหรับวาดกราฟ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse สำหรับอ่านไฟล์ CSV แบบ Offline -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome สำหรับไอคอน -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased">
+
+    <!-- Navigation / Header -->
+    <nav class="bg-red-600 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <i class="fab fa-youtube text-3xl"></i>
+                    <span class="font-bold text-xl tracking-wide">YouTube Creator Analytics <span class="text-xs bg-red-800 px-2 py-1 rounded-full ml-2">Offline Ready</span></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- File Upload Section -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">อัปโหลดข้อมูลของคุณ (Local CSV)</h2>
+                <p class="text-sm text-gray-500">กรุณาอัปโหลดไฟล์ <code class="bg-gray-100 px-1 rounded text-red-500">global_youtube_creator_data_large.csv</code> ข้อมูลจะถูกประมวลผลในเครื่องของคุณโดยตรง ปลอดภัย 100%</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <label class="cursor-pointer bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2 px-4 rounded-lg border border-red-200 transition-colors shadow-sm">
+                    <i class="fas fa-file-upload mr-2"></i> เลือกไฟล์ CSV ในเครื่อง
+                    <input type="file" id="csvFileInput" accept=".csv" class="hidden">
+                </label>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden text-center py-12">
+            <i class="fas fa-spinner fa-spin text-4xl text-red-500 mb-4"></i>
+            <p class="text-gray-600">กำลังประมวลผลข้อมูล... อาจใช้เวลาสักครู่หากไฟล์มีขนาดใหญ่</p>
+        </div>
+
+        <!-- Main Dashboard Content (Hidden until data is loaded) -->
+        <div id="dashboardContent" class="hidden space-y-8">
+            
+            <!-- Filters Panel -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-filter text-gray-400"></i>
+                    <h3 class="font-semibold text-gray-700">ตัวกรองข้อมูล (Filters)</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">หมวดหมู่ (Category)</label>
+                        <select id="filterCategory" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="all">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">ภูมิภาค (Region)</label>
+                        <select id="filterRegion" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="all">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">ภาษา (Language)</label>
+                        <select id="filterLanguage" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="all">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">การสร้างรายได้ (Ads Enabled)</label>
+                        <select id="filterAds" class="w-full bg-gray-50 border border-gray-200 text-gray-700 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="True">เปิดใช้งาน (True)</option>
+                            <option value="False">ปิดใช้งาน (False)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- KPI 1 -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center gap-4">
+                    <div class="bg-blue-50 p-4 rounded-lg text-blue-500">
+                        <i class="fas fa-video text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">จำนวนวิดีโอทั้งหมด</p>
+                        <h4 class="text-2xl font-bold text-gray-800" id="kpiTotalVideos">0</h4>
+                    </div>
+                </div>
+                <!-- KPI 2 -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center gap-4">
+                    <div class="bg-red-50 p-4 rounded-lg text-red-500">
+                        <i class="fas fa-eye text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">ยอดเข้าชมรวม (Views)</p>
+                        <h4 class="text-2xl font-bold text-gray-800" id="kpiTotalViews">0</h4>
+                    </div>
+                </div>
+                <!-- KPI 3 -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center gap-4">
+                    <div class="bg-green-50 p-4 rounded-lg text-green-500">
+                        <i class="fas fa-thumbs-up text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">ยอดไลก์รวม (Likes)</p>
+                        <h4 class="text-2xl font-bold text-gray-800" id="kpiTotalLikes">0</h4>
+                    </div>
+                </div>
+                <!-- KPI 4 -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center gap-4">
+                    <div class="bg-purple-50 p-4 rounded-lg text-purple-500">
+                        <i class="fas fa-smile text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">คะแนนความรู้สึกเฉลี่ย</p>
+                        <h4 class="text-2xl font-bold text-gray-800" id="kpiAvgSentiment">0.00</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="font-semibold text-gray-700 mb-4">ยอดเข้าชมแยกตามหมวดหมู่ (Views by Category)</h3>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="font-semibold text-gray-700 mb-4">สัดส่วนวิดีโอแยกตามภูมิภาค (Videos by Region)</h3>
+                    <div class="chart-container">
+                        <canvas id="regionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="font-semibold text-gray-700 mb-4">คะแนนความรู้สึกเฉลี่ยแยกตามภาษา (Sentiment by Language)</h3>
+                    <div class="chart-container">
+                        <canvas id="languageSentimentChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="font-semibold text-gray-700 mb-4">ยอดเข้าชม vs การกดไลก์ (Views vs Likes)</h3>
+                    <div class="chart-container">
+                        <canvas id="engagementChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ตัวแปรเก็บข้อมูล
+        let rawData = [];
+        let filteredData = [];
+        let charts = {};
+
+        // อ้างอิง HTML Elements
+        const fileInput = document.getElementById('csvFileInput');
+        const loadingDiv = document.getElementById('loading');
+        const dashboardContent = document.getElementById('dashboardContent');
+        
+        const filterCategory = document.getElementById('filterCategory');
+        const filterRegion = document.getElementById('filterRegion');
+        const filterLanguage = document.getElementById('filterLanguage');
+        const filterAds = document.getElementById('filterAds');
+
+        const numFormat = new Intl.NumberFormat('th-TH');
+
+        // ดักจับเหตุการณ์ต่างๆ
+        fileInput.addEventListener('change', handleFileUpload);
+        filterCategory.addEventListener('change', applyFilters);
+        filterRegion.addEventListener('change', applyFilters);
+        filterLanguage.addEventListener('change', applyFilters);
+        filterAds.addEventListener('change', applyFilters);
+
+        // ฟังก์ชันเมื่ออัปโหลดไฟล์
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            loadingDiv.classList.remove('hidden');
+            dashboardContent.classList.add('hidden');
+
+            // ใช้ PapaParse อ่านไฟล์ CSV ในเครื่อง
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true, // แปลงตัวเลขเป็น Number อัตโนมัติ
+                skipEmptyLines: true,
+                complete: function(results) {
+                    // กรองเฉพาะบรรทัดที่มีข้อมูลวิดีโอจริงๆ
+                    rawData = results.data.filter(row => row.video_id); 
+                    filteredData = [...rawData];
+                    
+                    populateFilterOptions();
+                    initCharts();
+                    updateDashboard();
+                    
+                    loadingDiv.classList.add('hidden');
+                    dashboardContent.classList.remove('hidden');
+                },
+                error: function(err) {
+                    alert('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message);
+                    loadingDiv.classList.add('hidden');
+                }
+            });
+        }
+
+        // สร้างตัวเลือกใน Filter อัตโนมัติจากข้อมูล
+        function populateFilterOptions() {
+            const categories = new Set();
+            const regions = new Set();
+            const languages = new Set();
+
+            rawData.forEach(row => {
+                if (row.category) categories.add(row.category);
+                if (row.region) regions.add(row.region);
+                if (row.language) languages.add(row.language);
+            });
+
+            const fillSelect = (selectElem, items) => {
+                selectElem.innerHTML = '<option value="all">ทั้งหมด</option>';
+                Array.from(items).sort().forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = item;
+                    selectElem.appendChild(option);
+                });
+            };
+
+            fillSelect(filterCategory, categories);
+            fillSelect(filterRegion, regions);
+            fillSelect(filterLanguage, languages);
+        }
+
+        // เมื่อมีการกด Filter
+        function applyFilters() {
+            const catFilter = filterCategory.value;
+            const regFilter = filterRegion.value;
+            const langFilter = filterLanguage.value;
+            const adsFilter = filterAds.value;
+
+            filteredData = rawData.filter(row => {
+                const matchCat = catFilter === 'all' || row.category === catFilter;
+                const matchReg = regFilter === 'all' || row.region === regFilter;
+                const matchLang = langFilter === 'all' || row.language === langFilter;
+                const matchAds = adsFilter === 'all' || String(row.ads_enabled) === adsFilter;
+                
+                return matchCat && matchReg && matchLang && matchAds;
+            });
+
+            updateDashboard();
+        }
+
+        // อัปเดตข้อมูลทั้งหมดในหน้าจอ
+        function updateDashboard() {
+            updateKPIs();
+            updateChartData();
+        }
+
+        // อัปเดตตัวเลขสถิติด้านบน
+        function updateKPIs() {
+            const totalVideos = filteredData.length;
+            const totalViews = filteredData.reduce((sum, row) => sum + (row.views || 0), 0);
+            const totalLikes = filteredData.reduce((sum, row) => sum + (row.likes || 0), 0);
+            
+            const totalSentiment = filteredData.reduce((sum, row) => sum + (row.sentiment_score || 0), 0);
+            const avgSentiment = totalVideos > 0 ? (totalSentiment / totalVideos).toFixed(2) : "0.00";
+
+            document.getElementById('kpiTotalVideos').textContent = numFormat.format(totalVideos);
+            document.getElementById('kpiTotalViews').textContent = numFormat.format(totalViews);
+            document.getElementById('kpiTotalLikes').textContent = numFormat.format(totalLikes);
+            
+            const sentimentElem = document.getElementById('kpiAvgSentiment');
+            sentimentElem.textContent = avgSentiment;
+            
+            if (avgSentiment > 0) sentimentElem.className = "text-2xl font-bold text-green-600";
+            else if (avgSentiment < 0) sentimentElem.className = "text-2xl font-bold text-red-600";
+            else sentimentElem.className = "text-2xl font-bold text-gray-800";
+        }
+
+        // --- ตั้งค่ากราฟ ---
+        function initCharts() {
+            Chart.defaults.font.family = "'Prompt', sans-serif";
+            
+            // หากมีการสร้างกราฟเก่าไว้ ให้ทำลายก่อนเพื่อสร้างใหม่ไม่ให้ทับซ้อน
+            if (charts.category) charts.category.destroy();
+            if (charts.region) charts.region.destroy();
+            if (charts.language) charts.language.destroy();
+            if (charts.engagement) charts.engagement.destroy();
+
+            const ctxCat = document.getElementById('categoryChart').getContext('2d');
+            charts.category = new Chart(ctxCat, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            const ctxReg = document.getElementById('regionChart').getContext('2d');
+            charts.region = new Chart(ctxReg, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+
+            const ctxLang = document.getElementById('languageSentimentChart').getContext('2d');
+            charts.language = new Chart(ctxLang, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, indexAxis: 'y' }
+            });
+
+            const ctxEng = document.getElementById('engagementChart').getContext('2d');
+            charts.engagement = new Chart(ctxEng, {
+                type: 'scatter',
+                data: { datasets: [] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: function(ctx) { return `Views: ${ctx.raw.x}, Likes: ${ctx.raw.y}`; } } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'ยอดเข้าชม (Views)' } },
+                        y: { title: { display: true, text: 'ยอดกดไลก์ (Likes)' } }
+                    }
+                }
+            });
+        }
+
+        // อัปเดตข้อมูลกราฟหลังจาก Filter
+        function updateChartData() {
+            const categoryData = {};
+            const regionData = {};
+            const languageSentiment = {};
+            const languageCounts = {};
+            const scatterData = [];
+            
+            filteredData.forEach((row) => {
+                if (row.category) categoryData[row.category] = (categoryData[row.category] || 0) + (row.views || 0);
+                if (row.region) regionData[row.region] = (regionData[row.region] || 0) + 1;
+                
+                if (row.language && row.sentiment_score !== null) {
+                    languageSentiment[row.language] = (languageSentiment[row.language] || 0) + row.sentiment_score;
+                    languageCounts[row.language] = (languageCounts[row.language] || 0) + 1;
+                }
+
+                // สุ่มหยิบข้อมูลมาลงจุด Scatter plot สูงสุดไม่เกิน 1,000 จุด เพื่อให้คอมพิวเตอร์ไม่หน่วงเกินไป
+                if (row.views !== null && row.likes !== null && scatterData.length < 1000) {
+                    if (filteredData.length <= 1000 || Math.random() < (1000 / filteredData.length)) {
+                         scatterData.push({ x: row.views, y: row.likes });
+                    }
+                }
+            });
+
+            // อัปเดตกราฟ Category
+            charts.category.data = {
+                labels: Object.keys(categoryData),
+                datasets: [{
+                    label: 'ยอดเข้าชม',
+                    data: Object.values(categoryData),
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderRadius: 4
+                }]
+            };
+            charts.category.update();
+
+            // อัปเดตกราฟ Region
+            const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+            charts.region.data = {
+                labels: Object.keys(regionData),
+                datasets: [{
+                    data: Object.values(regionData),
+                    backgroundColor: colors.slice(0, Object.keys(regionData).length)
+                }]
+            };
+            charts.region.update();
+
+            // อัปเดตกราฟ Language Sentiment
+            const langLabels = Object.keys(languageSentiment);
+            const langAvgSentiments = langLabels.map(lang => languageSentiment[lang] / languageCounts[lang]);
+            charts.language.data = {
+                labels: langLabels,
+                datasets: [{
+                    label: 'คะแนนความรู้สึก',
+                    data: langAvgSentiments,
+                    backgroundColor: langAvgSentiments.map(val => val >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                    borderRadius: 4
+                }]
+            };
+            charts.language.update();
+
+            // อัปเดตกราฟ Engagement
+            charts.engagement.data = {
+                datasets: [{
+                    label: 'Videos',
+                    data: scatterData,
+                    backgroundColor: 'rgba(236, 72, 153, 0.5)',
+                    pointRadius: 4
+                }]
+            };
+            charts.engagement.update();
+        }
+    </script>
+</body>
+</html>
